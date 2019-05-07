@@ -100,9 +100,7 @@ RCT_EXPORT_METHOD(getAutocompletePredictions: (NSString *)query
     GMSCoordinateBounds *autocompleteBounds = [self getBounds:locationBias andRestrictOptions:locationRestriction];
     
     //    GMSAutocompleteSessionToken *token = [[GMSAutocompleteSessionToken alloc] init];
-    printf("\n");
-    NSLog(@"getAutocompletePredictions session token %@", self.sessionToken);
-    printf("\n");
+
     [[GMSPlacesClient sharedClient] findAutocompletePredictionsFromQuery:query
                                                                   bounds:autocompleteBounds
                                                               boundsMode:self.boundsMode
@@ -113,24 +111,24 @@ RCT_EXPORT_METHOD(getAutocompletePredictions: (NSString *)query
                                                                         reject(@"E_AUTOCOMPLETE_ERROR", [error description], nil);
                                                                         return;
                                                                     }
-                                                                    
+
                                                                     if (results != nil) {
                                                                         for (GMSAutocompletePrediction* result in results) {
                                                                             NSMutableDictionary *placeData = [[NSMutableDictionary alloc] init];
-                                                                            
+
                                                                             placeData[@"fullText"] = result.attributedFullText.string;
                                                                             placeData[@"primaryText"] = result.attributedPrimaryText.string;
                                                                             placeData[@"secondaryText"] = result.attributedSecondaryText.string;
                                                                             placeData[@"placeID"] = result.placeID;
                                                                             placeData[@"types"] = result.types;
-                                                                            
+
                                                                             [autoCompleteSuggestionsList addObject:placeData];
                                                                         }
-                                                                        
+
                                                                         resolve(autoCompleteSuggestionsList);
-                                                                        
+
                                                                     }
-                                                                    
+
                                                                 }];
 }
 
@@ -139,17 +137,21 @@ RCT_EXPORT_METHOD(lookUpPlaceByID: (NSString*)placeID
                   resolver: (RCTPromiseResolveBlock)resolve
                   rejecter: (RCTPromiseRejectBlock)reject)
 {
-    
+
     GMSPlaceField selectedFields = [self getSelectedFields:fields isCurrentOrFetchPlace:true];
-    
+
     [[GMSPlacesClient sharedClient] fetchPlaceFromPlaceID:placeID placeFields:selectedFields sessionToken:self.sessionToken
                                                  callback:^(GMSPlace * _Nullable place, NSError * _Nullable error) {
                                                      if (error != nil) {
                                                          reject(@"E_PLACE_DETAILS_ERROR", [error localizedDescription], nil);
                                                          return;
                                                      }
-                                                     
+
                                                      if (place != nil) {
+                                                         self.sessionToken = [[GMSAutocompleteSessionToken alloc] init];
+                                                         printf("\n");
+                                                         NSLog(@"RNGooglePlaces - lookUpPlaceById session token %@", self.sessionToken);
+                                                         printf("\n");
                                                          resolve([NSMutableDictionary dictionaryWithGMSPlace:place]);
                                                      } else {
                                                          resolve(@{});
@@ -162,27 +164,27 @@ RCT_EXPORT_METHOD(getCurrentPlace: (NSArray *)fields
                   rejecter: (RCTPromiseRejectBlock)reject)
 {
     [self.locationManager requestAlwaysAuthorization];
-    
-    
+
+
     GMSPlaceField selectedFields = [self getSelectedFields:fields isCurrentOrFetchPlace:true];
-    
+
     NSMutableArray *likelyPlacesList = [NSMutableArray array];
-    
+
     [[GMSPlacesClient sharedClient] findPlaceLikelihoodsFromCurrentLocationWithPlaceFields:selectedFields callback:^(NSArray<GMSPlaceLikelihood *> * _Nullable likelihoods, NSError * _Nullable error) {
         if (error != nil) {
             reject(@"E_CURRENT_PLACE_ERROR", [error localizedDescription], nil);
             return;
         }
-        
+
         if (likelihoods != nil) {
             for (GMSPlaceLikelihood *likelihood in likelihoods) {
                 NSMutableDictionary *placeData = [NSMutableDictionary dictionaryWithGMSPlace:likelihood.place];
                 placeData[@"likelihood"] = [NSNumber numberWithDouble:likelihood.likelihood];
-                
+
                 [likelyPlacesList addObject:placeData];
             }
         }
-        
+
         resolve(likelyPlacesList);
     }];
 }
@@ -190,8 +192,7 @@ RCT_EXPORT_METHOD(getCurrentPlace: (NSArray *)fields
 RCT_EXPORT_METHOD(setSessionToken: (RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 {
-    printf("RNGooglePlaces - setSessionToken");
-    
+
     self.sessionToken = [[GMSAutocompleteSessionToken alloc] init];
 
     printf("\n");
