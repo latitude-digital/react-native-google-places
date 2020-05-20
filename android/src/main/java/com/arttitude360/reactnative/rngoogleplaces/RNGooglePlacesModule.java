@@ -33,6 +33,7 @@ import com.google.android.gms.common.api.Status;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.AddressComponent;
 import com.google.android.libraries.places.api.model.AutocompleteSessionToken;
 import com.google.android.libraries.places.api.model.LocationBias;
 import com.google.android.libraries.places.api.model.LocationRestriction;
@@ -286,7 +287,7 @@ public class RNGooglePlacesModule extends ReactContextBaseJavaModule implements 
             return;
         }
         
-        List<Place.Field> selectedFields = getPlaceFields(fields.toArrayList(), true);
+        List<Place.Field> selectedFields = getPlaceFields(fields.toArrayList(), false);
 
         FetchPlaceRequest request = FetchPlaceRequest.builder(placeID, selectedFields).build();
 
@@ -380,6 +381,28 @@ public class RNGooglePlacesModule extends ReactContextBaseJavaModule implements 
                 map.putString("address", place.getAddress());
             } else {
                 map.putString("address", "");
+            }
+        }
+
+        if (selectedFields.contains(Place.Field.ADDRESS_COMPONENTS)) {
+            if (place.getAddressComponents() != null) {
+                List<AddressComponent> items = place.getAddressComponents().asList();
+                WritableNativeArray addressComponents = new WritableNativeArray();
+
+                for (AddressComponent item : items) {
+                    WritableMap addressComponentMap = Arguments.createMap();
+                    addressComponentMap.putArray("types", Arguments.fromList(item.getTypes()));
+                    addressComponentMap.putString("name", item.getName());
+                    addressComponentMap.putString("shortName", item.getShortName());
+
+                    addressComponents.pushMap(addressComponentMap);
+                }
+
+                map.putArray("addressComponents", addressComponents);
+            }
+            else {
+                WritableArray emptyResult = Arguments.createArray();
+                map.putArray("addressComponents", emptyResult);
             }
         }
 
@@ -525,7 +548,7 @@ public class RNGooglePlacesModule extends ReactContextBaseJavaModule implements 
 
         if (placeFields.size() == 0 && isCurrentOrFetchPlace) {
             List<Place.Field> allPlaceFields = new ArrayList<>(Arrays.asList(Place.Field.values()));
-            allPlaceFields.removeAll(Arrays.asList(Place.Field.OPENING_HOURS, Place.Field.PHONE_NUMBER, Place.Field.WEBSITE_URI));
+            allPlaceFields.removeAll(Arrays.asList(Place.Field.OPENING_HOURS, Place.Field.PHONE_NUMBER, Place.Field.WEBSITE_URI, Place.Field.ADDRESS_COMPONENTS));
 
             return allPlaceFields;
         }
@@ -537,7 +560,7 @@ public class RNGooglePlacesModule extends ReactContextBaseJavaModule implements 
         }
 
         if (placeFields.size() != 0 && isCurrentOrFetchPlace) {
-            selectedFields.removeAll(Arrays.asList(Place.Field.OPENING_HOURS, Place.Field.PHONE_NUMBER, Place.Field.WEBSITE_URI));
+            selectedFields.removeAll(Arrays.asList(Place.Field.OPENING_HOURS, Place.Field.PHONE_NUMBER, Place.Field.WEBSITE_URI, Place.Field.ADDRESS_COMPONENTS));
         }
 
         return selectedFields;

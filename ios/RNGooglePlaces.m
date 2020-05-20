@@ -135,24 +135,22 @@ RCT_EXPORT_METHOD(lookUpPlaceByID: (NSString*)placeID
                   resolver: (RCTPromiseResolveBlock)resolve
                   rejecter: (RCTPromiseRejectBlock)reject)
 {
-    
-    GMSPlaceField selectedFields = [self getSelectedFields:fields isCurrentOrFetchPlace:true];
-    
-    [[GMSPlacesClient sharedClient] fetchPlaceFromPlaceID:placeID placeFields:selectedFields sessionToken:self.sessionToken
-                                                 callback:^(GMSPlace * _Nullable place, NSError * _Nullable error) {
-                                                     if (error != nil) {
-                                                         reject(@"E_PLACE_DETAILS_ERROR", [error localizedDescription], nil);
-                                                         return;
-                                                     }
-                                                     
-                                                     if (place != nil) {
-                                                         self.sessionToken = [[GMSAutocompleteSessionToken alloc] init];
-                                                         
-                                                         resolve([NSMutableDictionary dictionaryWithGMSPlace:place]);
-                                                     } else {
-                                                         resolve(@{});
-                                                     }
-                                                 }];
+    GMSPlaceField selectedFields = [self getSelectedFields:fields isCurrentOrFetchPlace:false];
+
+    [[GMSPlacesClient sharedClient] fetchPlaceFromPlaceID:placeID placeFields:selectedFields sessionToken:nil
+                                         callback:^(GMSPlace * _Nullable place, NSError * _Nullable error) {
+                                             if (error != nil) {
+                                                 reject(@"E_PLACE_DETAILS_ERROR", [error localizedDescription], nil);
+                                                 return;
+                                             }
+                                             
+                                             if (place != nil) {
+                                                 self.sessionToken = [[GMSAutocompleteSessionToken alloc] init];
+                                                 resolve([NSMutableDictionary dictionaryWithGMSPlace:place]);
+                                             } else {
+                                                 resolve(@{});
+                                             }
+                                         }];
 }
 
 RCT_EXPORT_METHOD(getCurrentPlace: (NSArray *)fields
@@ -251,7 +249,12 @@ RCT_EXPORT_METHOD(setSessionToken: (RCTPromiseResolveBlock)resolve
     if ([fields count] == 0 && currentOrFetch) {
         GMSPlaceField placeFields = 0;
         for (NSString *fieldLabel in fieldsMapping) {
-            placeFields |= [fieldsMapping[fieldLabel] integerValue];
+            if ([fieldsMapping[fieldLabel] integerValue] != GMSPlaceFieldOpeningHours &&
+                [fieldsMapping[fieldLabel] integerValue] != GMSPlaceFieldPhoneNumber &&
+                [fieldsMapping[fieldLabel] integerValue] != GMSPlaceFieldWebsite &&
+                [fieldsMapping[fieldLabel] integerValue] != GMSPlaceFieldAddressComponents) {
+                placeFields |= [fieldsMapping[fieldLabel] integerValue];
+            }
         }
         return placeFields;
     }
