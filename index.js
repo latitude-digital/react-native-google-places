@@ -53,6 +53,48 @@ class RNGooglePlaces {
 	setSessionToken() {
 		return RNGooglePlacesNative.setSessionToken()
 	}
+
+	// does some basic parsing of addressComponents into number/route/city/state/postal_code/country
+	parseAddressComponents(addressComponents) {
+
+		const ret = {
+			street_number: null,
+			route: null,
+			city: null,
+			state: null,
+			postal_code: null,
+			country: null,
+		};
+
+		for (const component of addressComponents) {
+			// street_number
+			if (component.types.includes('street_number')) {
+				ret.street_number = component.name;
+			}
+			// route
+			if (component.types.includes('route')) {
+				ret.route = component.name;
+			}
+			// city
+			if (component.types.includes('locality')) {
+				ret.city = component.name;
+			}
+			// state
+			if (component.types.includes('administrative_area_level_1')) {
+				ret.state = component.shortName;
+			}
+			// postal_code
+			if (component.types.includes('postal_code')) {
+				ret.postal_code = component.name;
+			}
+			// country
+			if (component.types.includes('country')) {
+				ret.country = component.name;
+			}
+		}
+
+		return ret;
+	}
 }
 
 export default new RNGooglePlaces()
